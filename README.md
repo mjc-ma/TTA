@@ -11,138 +11,63 @@
 **19/06/23** 🧨 Diffusers implementation of Plug-and-Play is available [here](https://github.com/MichalGeyer/pnp-diffusers).
 
 ## TODO:
-- [ ] Diffusers support and pipeline integration
-- [ ] Gradio demo
-- [x] Release TI2I Benchmarks
+
 
 
 ## Usage
+### 1、Downloading StableDiffusion Weights
 
-**To plug-and-play diffusion features, please follow these steps:**
+Download the StableDiffusion weights from the [CompVis organization at Hugging Face](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original)
+(download the `sd-v1-4.ckpt` file)
 
-1. [Setup](#setup)
-2. [Feature extraction](#feature-extraction)
-3. [Running PnP](#running-pnp)
-4. [TI2I Benchmarks](#ti2i-benchmarks)
+```
+mkdir models
+ln -s <path/to/model.ckpt> models/ldm/stable-diffusion-v1/model.ckpt 
+``` 
 
+### 2 、Downloading and putting Imagenet-C in args.base_samples in line 163.
+
+### 3 、run the DDIM reverse and inverse process and DDIM sample with prompt in run_pnp_fog.py
+if you want to use the extra grediant during the last sampling,please set score_corrector=score_corrector,else set score_corrector=None in line 528. To select different corruption ,set corruption='XXX' in line 164. set num=1 to generate 1 sample every class.
+```
+python run_pnp_fog.py 
+``` 
+### 4 、run the model evaluation with the generated samples in model_adapt.py
+set your generated samples path in --data_dir
+```
+python model_adapt.py
+``` 
 
 ## Setup
 
-Our codebase is built on [CompVis/stable-diffusion](https://github.com/CompVis/stable-diffusion)
-and has shared dependencies and model architecture.
+This code includes three process in run_pnp_fog.py:
+1.  DDIM encode in run_pnp_fog.py line 229, 
+2.  DDPM save features during sampling in line 242, 
+3.  DDIM sample with prompt in line 288.
 
-### Creating a Conda Environment
+configs in config/pnp, sample config in contrast cooruption as pnp-real_100_5_contrast.yaml 
+important parameters:
+base_samples: XXX/ImageNet-C   # path to the base samples directory
+corruption: contrast           # corruption type
+severity: 5                    # corruption severity  
+save_dir:                      # path to save the result
+scale: 5                       # unconditional guidance scale. Note that a higher value encourages deviation from the source image
+num: 1                         # number of samples to generate(sub sample)  
+num_samples: total samples(num * 1000) ## number of total samples to generate
 
-```
-conda env create -f environment.yaml
-conda activate pnp-diffusion
-```
-
-### Downloading StableDiffusion Weights
-
-Download the StableDiffusion weights from the [CompVis organization at Hugging Face](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original)
-(download the `sd-v1-4.ckpt` file), and link them:
-```
-mkdir -p models/ldm/stable-diffusion-v1/
-ln -s <path/to/model.ckpt> models/ldm/stable-diffusion-v1/model.ckpt 
-```
-
-
-### Setting Experiment Root Path
-
-The data of all the experiments is stored in a root directory.
-The path of this directory is specified in `configs/pnp/setup.yaml`, under the `config.exp_path_root` key.
-
-
-## Feature Extraction
-
-For generating and extracting the features of an image, first set the parameters for the translation in a yaml config file.
-An example of extraction configs can be found in `configs/pnp/feature-extraction-generated.yaml` for generated images
-and in `configs/pnp/feature-extraction-real.yaml` for real images. Once the arguments are set, run:
+To reproduce DDA baseline ,please run DDA.sh
 
 ```
-python run_features_extraction.py --config <extraction_config_path>
-```
-
-For real images, the timesteps at which features are saved are determined by the `save_feature_timesteps` argument.
-Note that for running PnP with `T` sampling steps for real images, you need to run the extraction with `save_feature_timesteps` = `T`
-(since we're sampling with 999 steps for reconstructing the real image, we need to specify the timesteps at which features are saved).
-
-
-After running the extraction script, an experiment folder is created in `<exp_path_root>/<source_experiment_name>`,
-where `source_experiment_name` is specified by the config file. The experiment directory contains the following structure:
-```
-- <source_experiment_name>
-    - feature_maps         # contains the extracted features
-    - predicted_samples    # predicted clean images for each sampling timestep
-    - samples              # contains the generated/inverted image
-    - translations         # PnP translation results
-    - z_enc.pt             # the initial noisy latent code
-    - args.json            # the config arguments of the experiment
-```
-
-For visualizing the extracted features, see the [Feature Visualization](#feature-visualization) section.
-
-
-## Running PnP
-
-For running PnP, first set the parameters for the translation in a yaml config file.
-An example of PnP config can be found in `configs/pnp/pnp-generated.yaml` for generated images
-and in `configs/pnp/pnp-real.yaml` for real images. Once the arguments are set, run:
+bash DDA.sh
 
 ```
-python run_pnp.py --config <pnp_config_path>
+To reproduce Diffpure baseline ,please cd Diffpure and run bash.sh
+select different number of noise adding to init image,for example please set diffpure_ratio=0.3 for 300 steps
+```
+cd Diffpure
+bash bash.sh
+
 ```
 
-In the config parameters, you can control the following aspects in the translation:
-
-- **Structure preservation** can be controlled by the `feature_injection_threshold` parameter
-  (a higher value allows better structure preservation but can also leak details from the source image, ~80% of the total sampling steps generally gives a good tradeoff).
-- **Deviation from the guidance image** can be controlled through the `scale`, `negative_prompt_alpha` and `negative_prompt_schedule` parameters (see the sample config files for details).
-The effect of negative prompting is minor in case of realistic guidance images, but it can significantly help in case of minimalistic and abstract guidance images (e.g. segmentations).
-
-Note that you can run a batch of translations by providing multiple target prompts in the `prompts`  parameter.
-
-## Feature Visualization
-
-### ResBlock Features Visualization
-For running PCA visualizations on the extracted ResBlock features (Figure 3 in the paper),
-first set the parameters for the visualization in a yaml config file.
-An example of visualization config can be found in `configs/pnp/feature-pca-vis.yaml`.
-Once the arguments are set, run:
-
-```
-python run_features_pca.py --config "<pca_vis_config_path>"
-```
-
-The feature visualizations are saved under `<config.exp_path_root>/PCA_features_vis/<experiment_name>` directory,
-where `<experiment_name>` is specified in the visualization config file.
 
 
-### Self-Attention Visualization
-
-
-To visualize the self-attention maps of a generated/inverted image (Figure 6 in the paper), run: 
-```
-python run_self_attn_pca.py --block "<visualization_module_name>" --experiment "<experiment_name>"
-```
-
-The self-attention visualizations are saved under `<config.exp_path_root>/PCA_self_attention_vis/<experiment_name>` directory.
-
-
-## TI2I Benchmarks
-
-You can find the **Wild-TI2I**, **ImageNetR-TI2I** and **ImageNetR-Fake-TI2I** benchmarks in [this dropbox folder](https://www.dropbox.com/sh/8giw0uhfekft47h/AAAF1frwakVsQocKczZZSX6La?dl=0). The translation prompts and all the necessary configs (e.g. seed, generation prompt, guidance image path) are provided in a yaml file in each benchmark folder.
-
-
-## Citation
-```
-@InProceedings{Tumanyan_2023_CVPR,
-    author    = {Tumanyan, Narek and Geyer, Michal and Bagon, Shai and Dekel, Tali},
-    title     = {Plug-and-Play Diffusion Features for Text-Driven Image-to-Image Translation},
-    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-    month     = {June},
-    year      = {2023},
-    pages     = {1921-1930}
-}
-```
