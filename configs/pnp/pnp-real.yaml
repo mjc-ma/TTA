@@ -1,0 +1,21 @@
+ddim_config:
+  experiment_name: "imagine_TTA_01"
+  ddim_steps: 100 # we use 999 steps for the best reconstruction
+  save_feature_timesteps: 50
+  scale: 1.0 # unconditional guidance scale. Note that a higher value encourages deviation from the source image
+  prompt: ""
+
+prompts: # text prompts for translations
+  - "a realistic photo"
+num_ddim_sampling_steps: 50 # if left empty, defaults to the ddim_steps_callback arg used in the source experiment
+feature_injection_threshold: 40 # should be in [0, num_ddim_sampling_steps]
+negative_prompt: "a noised photo"
+negative_prompt_alpha: 0 # ∈ [0, 1], determines the initial strength of negative-prompting (lower = stronger)
+negative_prompt_schedule: "linear" # ∈ {"linear", "constant", "exp"}, determines the attenuation schedule of negative-prompting
+
+##the dataset path is set to the ImageNet-C dataset by default, you can set your own dataset path here.
+
+corruption: gaussian_noise 
+scale: 10.0
+
+

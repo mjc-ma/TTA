@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 python /home/majc/TTA/plug-and-play/run_pnp_fog.py --config /home/majc/TTA/plug-and-play/configs/pnp/pnp-real_100_10.yaml

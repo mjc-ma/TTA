@@ -1,0 +1,33 @@
+ddim_config:
+  experiment_name: "imagine_TTA_01"
+  ddim_steps: 100 # we use 999 steps for the best reconstruction
+  save_feature_timesteps: 50
+  scale: 1.0 # unconditional guidance scale. Note that a higher value encourages deviation from the source image
+  prompt: ""
+
+source_experiment_name: "imagine_TTA_01" # the experiment name of the source image
+
+prompts: # text prompts for translations
+  - "a realistic photo"
+  # - "a striking,crisp photo"
+
+num_ddim_sampling_steps: 50 # if left empty, defaults to the ddim_steps_callback arg used in the source experiment
+
+# Control the level of structure preservation with injection timestep threshold
+feature_injection_threshold: 40 # should be in [0, num_ddim_sampling_steps]
+
+# Control the level of deviation from the source image with Negative prompting params.
+negative_prompt: "a unrealistic photo"
+negative_prompt_alpha: 0 # ∈ [0, 1], determines the initial strength of negative-prompting (lower = stronger)
+negative_prompt_schedule: "linear" # ∈ {"linear", "constant", "exp"}, determines the attenuation schedule of negative-prompting
+# setting negative_prompt_alpha = 1.0, negative_prompt_schedule = "constant" is equivalent to not using negative prompting
+
+batch_size: 1  
+image_size: 512
+base_samples: /data/majc/ImageNet-C  
+corruption: piexlate 
+severity: 5 
+save_dir: /data/majc/TTA/DDA_result_step100_scale20
+scale: 10 # unconditional guidance scale. Note that a higher value encourages deviation from the source image
+num: 1
+ 

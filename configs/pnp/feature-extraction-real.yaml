@@ -1,0 +1,5 @@
+config:
+  experiment_name: "gaussian_filter_bird_fft"
+  init_img: "/home/majc/TTA/plug-and-play/data/ILSVRC2012_val_00022597.JPEG"
+  ddim_steps: 100 # we use 999 steps for the best reconstruction
+  save_feature_timesteps: 50
