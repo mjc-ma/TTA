@@ -2,7 +2,7 @@ import argparse, os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,5"
 from run_features_extraction import load_model_from_config
 import io
-from CLIP import clip
+# from CLIP import clip
 from torch import nn
 
 from torchvision import transforms
@@ -28,7 +28,7 @@ from torchvision.transforms import functional as TF
 from ldm.models.diffusion.ddim import DDIMSampler
 from guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults
 from feature_exctractor import FeatureExtractorDDPM
-from DDA.image_adapt.resize_right import resize
+# from DDA.image_adapt.resize_right import resize
 from image_datasets import load_data
 from torchvision import utils
 from guided_diffusion import  logger
@@ -145,10 +145,10 @@ def main():
 
     parser = argparse.ArgumentParser()
     ### model related config
-    parser.add_argument('--config', default ='/home/majc/TTA/Diffusion-for-test-time-adaptation/configs/pnp/pnp-real.yaml', help='the experiment setting configs')
+    parser.add_argument('--config', default ='/home/majc/TTA/TTA/configs/pnp/pnp-real.yaml', help='the experiment setting configs')
     parser.add_argument('--ddim_eta', type=float, default=0.0, help='DDIM eta')
-    parser.add_argument('--model_config', type=str, default='/home/majc/TTA/plug-and-play/configs/stable-diffusion/v1-inference.yaml', help='model config')
-    parser.add_argument('--ckpt', type=str, default='/data/majc/models/sd-v1-4.ckpt', help='model checkpoint')
+    parser.add_argument('--model_config', type=str, default='/home/majc/plug-and-play/configs/stable-diffusion/v1-inference.yaml', help='model config')
+    parser.add_argument('--ckpt', type=str, default='/data/majc/sd-v1-4.ckpt', help='model checkpoint')
     parser.add_argument('--precision', type=str, default='autocast', help='choices: ["full", "autocast"]')
     parser.add_argument("--check-safety", action='store_true')
 
@@ -160,7 +160,7 @@ def main():
     parser.add_argument('--f', type=int, default=8, help='downsampling factor')
     parser.add_argument('--batch_size', type=int, default=1,help='')
     parser.add_argument('--image_size', type=int, default=512, help='image width, in pixel space')
-    parser.add_argument('--base_samples', type=str, default='/data/majc/ImageNet-C', help='dataset path')
+    parser.add_argument('--base_samples', type=str, default='/data/ImageNet-C', help='dataset path')
     parser.add_argument('--corruption', type=str, default='gaussian_noise', help='corruption type')
     parser.add_argument('--severity', type=int, default=5, help='the corruption severity level')
     parser.add_argument('--num', type=int, default=1, help='for each calss select num images')
@@ -196,50 +196,50 @@ def main():
     unet_model = model.model.diffusion_model
     sampler = DDIMSampler(model)
 
-    VGG = models.vgg19(pretrained=True).features
-    VGG.to(device)
-    Resnet = models.resnet18(pretrained=True)
-    Resnet.to(device)
-    for parameter in Resnet.parameters():
-        parameter.requires_grad_(False)
-    Resnet.eval()
+    # VGG = models.vgg19(pretrained=True).features
+    # VGG.to(device)
+    # Resnet = models.resnet18(pretrained=True)
+    # Resnet.to(device)
+    # for parameter in Resnet.parameters():
+    #     parameter.requires_grad_(False)
+    # Resnet.eval()
 
-    for parameter in VGG.parameters():
-        parameter.requires_grad_(False)
+    # for parameter in VGG.parameters():
+    #     parameter.requires_grad_(False)
 
-    def get_features(image, model, layers=None):
+    # def get_features(image, model, layers=None):
 
-        if layers is None:
-            layers = {'0': 'conv1_1',  
-                    '5': 'conv2_1',  
-                    '10': 'conv3_1', 
-                    '19': 'conv4_1', 
-                    '21': 'conv4_2', 
-                    '28': 'conv5_1',
-                    '31': 'conv5_2'
-                    }  
-        features = {}
-        x = image
-        for name, layer in model._modules.items():
-            x = layer(x)   
-            if name in layers:
-                features[layers[name]] = x
+    #     if layers is None:
+    #         layers = {'0': 'conv1_1',  
+    #                 '5': 'conv2_1',  
+    #                 '10': 'conv3_1', 
+    #                 '19': 'conv4_1', 
+    #                 '21': 'conv4_2', 
+    #                 '28': 'conv5_1',
+    #                 '31': 'conv5_2'
+    #                 }  
+    #     features = {}
+    #     x = image
+    #     for name, layer in model._modules.items():
+    #         x = layer(x)   
+    #         if name in layers:
+    #             features[layers[name]] = x
         
-        return features
+    #     return features
 
-    def feature_loss(x, x_t):
-        x_features = get_features(x, VGG)
-        x_t_features = get_features(x_t, VGG)
+    # def feature_loss(x, x_t):
+    #     x_features = get_features(x, VGG)
+    #     x_t_features = get_features(x_t, VGG)
 
-        loss = 0
-        loss += torch.mean((x_features['conv4_2'] - x_t_features['conv4_2']) ** 2)
-        loss += torch.mean((x_features['conv5_2'] - x_t_features['conv5_2']) ** 2)
+    #     loss = 0
+    #     loss += torch.mean((x_features['conv4_2'] - x_t_features['conv4_2']) ** 2)
+    #     loss += torch.mean((x_features['conv5_2'] - x_t_features['conv5_2']) ** 2)
 
-        return loss
+    #     return loss
 
-    def pixel_loss(x, x_t):
-        loss = nn.MSELoss()
-        return loss(x, x_t)
+    # def pixel_loss(x, x_t):
+    #     loss = nn.MSELoss()
+    #     return loss(x, x_t)
 
     # print("loading data...")
     # data = load_reference(
@@ -272,8 +272,8 @@ def main():
     # clip_size = clip_model.visual.input_resolution
     # print(f"clip input_resolution: {clip_size}")
     # resize_cropper = transforms.RandomResizedCrop(size=(clip_size, clip_size))
-    affine_transfomer = transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.5, 0.75))
-    perspective_transformer = transforms.RandomPerspective(distortion_scale=0.6, p=1.0)
+    # affine_transfomer = transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.5, 0.75))
+    # perspective_transformer = transforms.RandomPerspective(distortion_scale=0.6, p=1.0)
     # patcher = transforms.Compose([
     #     resize_cropper,
     #     perspective_transformer,
@@ -479,12 +479,12 @@ def main():
                 prompts = exp_config.prompts
 
                 # read the saved latent code z for the test image from memory files
-                memory_files[z_enc].seek(0) 
-                start_code = torch.load(memory_files[z_enc]) 
-                start_code = start_code.repeat(batch_size, 1, 1, 1)
+                # memory_files[z_enc].seek(0) 
+                # start_code = torch.load(memory_files[z_enc]) 
+                # start_code = start_code.repeat(batch_size, 1, 1, 1)
 
-                # t = torch.tensor([1000], device=device)
-                # start_code = model.q_sample(model_kwargs["ref_img"], t, noise=torch.randn_like(model_kwargs["ref_img"],device=device))
+                # t = torch.tensor([25], device=device)
+                # start_code = model.q_sample(init_latent, t)
                 # start_code = model.get_first_stage_encoding(model.encode_first_stage(start_code))
                 # init_image_tensor = Image.open(img_path).convert('RGB')
                 # init_image_tensor = TF.to_tensor(init_image_tensor).to(device).unsqueeze(0).mul(2).sub(1)
@@ -516,15 +516,21 @@ def main():
                 # with torch.no_grad():
                 with precision_scope("cuda"):
                     with model.ema_scope():
-                        uc = None
+                        # uc = None
                         nc = None
                         if exp_config.scale != 1.0:
-                            uc = model.get_learned_conditioning(batch_size * [unconditional_prompt])
+                            # uc = model.get_learned_conditioning(batch_size * [unconditional_prompt])
                             nc = model.get_learned_conditioning(batch_size * [negative_prompt])
                         if not isinstance(prompts, list):
                             prompts = list(prompts)
                         c = model.get_learned_conditioning(prompts)
+
+                        start_code = sampler.stochastic_encode(init_latent, torch.tensor([50]).to(device))
+                        
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
+                        # samples = sampler.decode(start_code, c, 50, unconditional_guidance_scale=opt.scale,
+                                                #  unconditional_conditioning=uc, )
+
                         samples_ddim, _ = sampler.sample(S=ddim_steps,
                                                         conditioning=c,
                                                         negative_conditioning=nc,
@@ -534,30 +540,27 @@ def main():
                                                         unconditional_conditioning=uc,
                                                         eta=opt.ddim_eta,
                                                         x_T=start_code,
-                                                        score_corrector=score_corrector,
+                                                        score_corrector=None,
                                                         injected_features=injected_features,
                                                         negative_prompt_alpha=exp_config.negative_prompt_alpha,
                                                         img_callback=ddim_sampler_callback_,
                                                         negative_prompt_schedule=exp_config.negative_prompt_schedule,scale=1.0,
                                                         )
                         x_samples_ddim = model.decode_first_stage(samples_ddim)
-                        # x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
-                        # x_samples_ddim = x_samples_ddim.cpu().permute(0, 2, 3, 1).detach().numpy()
-                        # x_image_torch = torch.from_numpy(x_samples_ddim).permute(0, 3, 1, 2)
+                        x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+                        x_samples_ddim = x_samples_ddim.cpu().permute(0, 2, 3, 1).detach().numpy()
+                        x_image_torch = torch.from_numpy(x_samples_ddim).permute(0, 3, 1, 2)
 
                         # save the generated image
-            
+                        x_sample = x_image_torch[0]
+                        x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
+                        img = Image.fromarray(x_sample.astype(np.uint8))
+
+       
                         path = os.path.join(exp_config.save_dir, exp_config.corruption, str(exp_config.severity),  subdir.split('/')[-1])
                         os.makedirs(path, exist_ok=True)
                         out_path = os.path.join(path,  img_path.split('/')[-1])
-                
-                        utils.save_image(
-                            x_samples_ddim[0].unsqueeze(0),
-                            out_path,
-                            nrow=1,
-                            normalize=True,
-                            range=(-1, 1),
-                        )
+                        img.save(out_path)
                         print(f"saving {img_path} to {out_path}")
                         # logger.log(f"created {count * exp_config.batch_size} samples")
 
